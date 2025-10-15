@@ -1,9 +1,10 @@
-const apiKey = 'YOUR_API_KEY'; // Replace with your actual API key
+const apiKey = 'HM6YJJZJX3HQW9FFCBG6PDUL8'; // Replace with your actual API key
 
 const locationForm = document.getElementById('location-form');
 const locationInput = document.getElementById('location-input');
 const weatherContainer = document.getElementById('weather-container');
 const unitToggle = document.getElementById('unit-toggle');
+let lastWeatherData = null; // Variable to store the last fetched weather data
 
 locationForm.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -11,8 +12,11 @@ locationForm.addEventListener('submit', (e) => {
     getWeatherData(location);
 });
 
+// Event listener for the unit toggle to re-display weather with new units
 unitToggle.addEventListener('change', () => {
-    // Implement unit conversion logic here
+    if (lastWeatherData) {
+        displayWeatherData(lastWeatherData); // Re-display data with the new unit
+    }
 });
 
 async function getWeatherData(location) {
@@ -26,6 +30,7 @@ async function getWeatherData(location) {
         }
         const data = await response.json();
         const processedData = processWeatherData(data);
+        lastWeatherData = processedData; // Store the processed data
         displayWeatherData(processedData);
     } catch (error) {
         weatherContainer.innerHTML = `<div class="error">Could not fetch weather data. Please try again.</div>`;
@@ -62,21 +67,24 @@ function displayWeatherData(data) {
     let forecastHtml = data.forecast.map(day => {
         const maxTemp = isCelsius ? toCelsius(day.tempmax) : day.tempmax;
         const minTemp = isCelsius ? toCelsius(day.tempmin) : day.tempmin;
+        const iconUrl = `https://raw.githubusercontent.com/visualcrossing/WeatherIcons/main/PNG/1st%20Set%20-%20Color/${day.icon}.png`;
         return `
             <div class="forecast-day">
                 <div>${new Date(day.date).toLocaleDateString(undefined, { weekday: 'short' })}</div>
-                <div><img src="icons/${day.icon}.png" alt="${day.conditions}"></div>
+                <div><img src="${iconUrl}" alt="${day.conditions}"></div>
                 <div>${maxTemp}${tempUnit} / ${minTemp}${tempUnit}</div>
             </div>
         `;
     }).join('');
+
+    const currentIconUrl = `https://raw.githubusercontent.com/visualcrossing/WeatherIcons/main/PNG/1st%20Set%20-%20Color/${data.current.icon}.png`;
 
     weatherContainer.innerHTML = `
         <h2>${data.location}</h2>
         <div class="current-weather">
             <div class="current-temp">${currentTemp}${tempUnit}</div>
             <div class="current-conditions">${data.current.conditions}</div>
-            <div><img src="icons/${data.current.icon}.gif" alt="${data.current.icon}"></div>
+            <div><img src="${currentIconUrl}" alt="${data.current.icon}"></div>
         </div>
         <div class="forecast-container">
             ${forecastHtml}
@@ -125,11 +133,3 @@ function updateBackground(icon) {
     document.body.style.backgroundImage = `url(${imageUrl})`;
     document.body.style.backgroundSize = 'cover';
 }
-
-// Add event listener for the unit toggle to re-display weather with new units
-unitToggle.addEventListener('change', () => {
-    const location = document.querySelector('h2');
-    if (location) {
-        getWeatherData(location.textContent);
-    }
-});
